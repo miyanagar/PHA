@@ -140,7 +140,7 @@
     margin-top: 18px;
     display: flex;
     justify-content: center;
-    gap: 30px;
+    gap: 10px;
     flex-wrap: wrap;
     font-size: 14px;
   }
@@ -331,6 +331,22 @@
       const div = document.createElement("div");
       div.className = "day-name";
       div.innerText = day;
+     // Sunday = always unavailable
+      if (thisDay.getDay() === 0) {
+          div.classList.add("unavailable");
+      }
+      else if (availability[dateString] === 0) {
+          div.classList.add("available");
+      }
+      else if (availability[dateString] === 1) {
+          div.classList.add("limited");
+      }
+      else if (availability[dateString] === 2) {
+          div.classList.add("unavailable");
+      }
+      else {
+          div.classList.add("available");
+      }
       calendar.appendChild(div);
     });
 
