@@ -184,25 +184,38 @@
     text-align: center;
   }
 
-  /* Desktop */
-  @media (min-width: 741px) {
-    .months {
-      flex-direction: row;
-    }
-  
-    .month {
-      width: 50%;
-    }
+/* Desktop */
+@media (min-width: 741px) {
+  .months {
+    display: flex;
+    flex-direction: row;
   }
-  
-  /* Mobile / Narrow iframe */
+
+  .month {
+    width: 50%;
+  }
+
+  /* Show second month */
+  #calendar2,
+  #monthTitle2 {
+    display: block;
+  }
+}
+
+  /* Mobile */
   @media (max-width: 740px) {
     .months {
-      flex-direction: column;
+      display: block;
     }
   
     .month {
       width: 100%;
+    }
+  
+    /* Hide second month */
+    #calendar2,
+    #monthTitle2 {
+      display: none;
     }
   
     .calendar-title {
