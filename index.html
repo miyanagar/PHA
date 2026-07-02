@@ -184,19 +184,31 @@
     text-align: center;
   }
 
-  @media (max-width: 700px) {
+  /* Desktop */
+  @media (min-width: 752px) {
     .months {
       flex-direction: row;
     }
-
+  
+    .month {
+      width: 50%;
+    }
+  }
+  
+  /* Mobile / Narrow iframe */
+  @media (max-width: 751px) {
+    .months {
+      flex-direction: column;
+    }
+  
     .month {
       width: 100%;
     }
-
+  
     .calendar-title {
       font-size: 17px;
     }
-
+  
     .nav-button {
       padding: 7px 9px;
       font-size: 14px;
