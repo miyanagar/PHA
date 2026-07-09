@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Availability Calendar</title>
+
+<style>
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 0;
+    padding: 12px;
+    background: #ffffff;
+    color: #222;
+  }
+
+  .calendar-wrapper {
+    max-width: 950px;
+    margin: 0 auto;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 16px;
+    background: #fff;
+  }
+
+  .calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+  }
+
+  .calendar-title {
+    font-size: 20px;
+    font-weight: bold;
+    text-align: center;
+  }
+
+  .nav-button {
+    border: 1px solid #ccc;
+    background: #f7f7f7;
+    color: #222;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 15px;
+    cursor: pointer;
+  }
+
+  .nav-button:hover:not(:disabled) {
+    background: #eeeeee;
+  }
+
+  .nav-button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .months {
+    display: flex;
+    gap: 22px;
+  }
+
+  .month {
+    width: 50%;
+  }
+
+  .month-title {
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+  }
+
+  .day-name {
+    text-align: center;
+    font-weight: bold;
+    font-size: 12px;
+    color: #555;
+    padding: 5px 0;
+  }
+
+  .day {
+    min-height: 44px;
+    text-align: center;
+    padding-top: 12px;
+    border-radius: 6px;
+    background: #ffffff;
+    border: 1px solid #cfcfcf;
+    font-size: 14px;
+    color: #222;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .day:hover:not(.unavailable):not(.past) {
+    background: #f2f6ff;
+  }
+
+  .empty {
+    background: transparent;
+    border: none;
+    cursor: default;
+  }
+
+  /* 0 = Available */
+  .available {
+    background: #ffffff;
+    border: 1px solid #bfbfbf;
+    color: #222;
+  }
+
+  /* 1 = Limited / Almost Full */
+  .limited {
+    background: #d9d9d9;
+    border: 1px solid #aaa;
+    color: #222;
+  }
+
+  /* 2 = Unavailable / Full */
+  .unavailable {
+    background: #666666;
+    border: 1px solid #555;
+    color: #ffffff;
+    cursor: not-allowed;
+  }
+
+  .today {
+    outline: 2px solid #2b7cff;
+    outline-offset: 1px;
+    font-weight: bold;
+  }
+
+  .past {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .selected-date-1 {
+    outline: 3px solid #2b7cff !important;
+    outline-offset: 1px;
+    font-weight: bold;
+  }
+
+  .selected-date-2 {
+    outline: 3px solid #ff9800 !important;
+    outline-offset: 1px;
+    font-weight: bold;
+  }
+
+  .selected-label {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .legend {
+    margin-top: 18px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 14px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+
+  .legend-box {
+    width: 18px;
+    height: 18px;
+    display: inline-block;
+    border-radius: 4px;
+    border: 1px solid #999;
+    margin-right: 8px;
+  }
+
+  .legend-box.available {
+    background: #ffffff;
+  }
+
+  .legend-box.limited {
+    background: #d9d9d9;
+  }
+
+  .legend-box.unavailable {
+    background: #666666;
+  }
+
+  .legend-box.choice1 {
+    background: #ffffff;
+    border: 3px solid #2b7cff;
+  }
+
+  .legend-box.choice2 {
+    background: #ffffff;
+    border: 3px solid #ff9800;
+  }
+
+  .error-message {
+    display: none;
+    margin-top: 14px;
+    padding: 10px;
+    border-radius: 6px;
+    background: #fff3cd;
+    border: 1px solid #ffeeba;
+    color: #856404;
+    font-size: 14px;
+    text-align: center;
+  }
+
+  /* Desktop */
+  @media (min-width: 741px) {
+    .months {
+      display: flex;
+      flex-direction: row;
+    }
+
+    .month {
+      width: 50%;
+    }
+  }
+
+  /* Mobile */
+  @media (max-width: 740px) {
+    .months {
+      display: block;
+    }
+
+    .month {
+      width: 100%;
+    }
+
+    /* Hide second month on narrow iframe */
+    #calendar2,
+    #monthTitle2 {
+      display: none;
+    }
+
+    .calendar-title {
+      font-size: 17px;
+    }
+
+    .nav-button {
+      padding: 7px 9px;
+      font-size: 14px;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+<div class="calendar-wrapper">
+  <div class="calendar-header">
+    <button id="prevButton" class="nav-button" onclick="changeMonth(-1)">&#9664;</button>
+    <div class="calendar-title">健康診断 空き状況 カレンダー</div>
+    <button id="nextButton" class="nav-button" onclick="changeMonth(1)">&#9654;</button>
+  </div>
+
+  <div class="months">
+    <div class="month">
+      <div class="month-title" id="monthTitle1"></div>
+      <div class="grid" id="calendar1"></div>
+    </div>
+
+    <div class="month">
+      <div class="month-title" id="monthTitle2"></div>
+      <div class="grid" id="calendar2"></div>
+    </div>
+  </div>
+
+  <div class="selected-label" id="selectedLabel">
+    第一希望日: 未選択　/　第二希望日: 未選択
+  </div>
+
+  <div class="legend">
+    <div class="legend-item">
+      <span class="legend-box available"></span>
+      予約可
+    </div>
+
+    <div class="legend-item">
+      <span class="legend-box limited"></span>
+      残り僅か
+    </div>
+
+    <div class="legend-item">
+      <span class="legend-box unavailable"></span>
+      予約不可
+    </div>
+
+    <div class="legend-item">
+      <span class="legend-box choice1"></span>
+      第一希望日
+    </div>
+
+    <div class="legend-item">
+      <span class="legend-box choice2"></span>
+      第二希望日
+    </div>
+  </div>
+
+  <div id="errorMessage" class="error-message">
+    Calendar availability could not be loaded. Please try again later.
+  </div>
+</div>
+
+<script>
+  let availability = {};
+  let selectedDate1 = null;
+  let selectedDate2 = null;
+
+  const minMonth = new Date();
+  minMonth.setDate(1);
+  minMonth.setHours(0, 0, 0, 0);
+
+  const maxMonth = new Date();
+  maxMonth.setDate(1);
+  maxMonth.setHours(0, 0, 0, 0);
+  maxMonth.setMonth(maxMonth.getMonth() + 11);
+
+  let currentDate = new Date(minMonth);
+
+  async function loadAvailability() {
+    try {
+      const response = await fetch("availability.json?v=" + new Date().getTime());
+
+      if (!response.ok) {
+        throw new Error("Could not load availability.json");
+      }
+
+      const data = await response.json();
+
+      availability = {};
+      data.forEach(item => {
+        availability[item.date] = Number(item.status);
+      });
+
+      renderCalendars();
+      document.getElementById("errorMessage").style.display = "none";
+    } catch (error) {
+      console.error(error);
+      renderCalendars();
+      document.getElementById("errorMessage").style.display = "block";
+    }
+  }
+
+  function renderCalendars() {
+    renderMonth(currentDate, "calendar1", "monthTitle1");
+
+    const nextMonth = new Date(currentDate);
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    renderMonth(nextMonth, "calendar2", "monthTitle2");
+
+    updateButtons();
+    refreshSelectedClasses();
+    updateSelectedLabel();
+  }
+
+  function renderMonth(dateObj, calendarId, titleId) {
+    const year = dateObj.getFullYear();
+    const month = dateObj.getMonth();
+
+    document.getElementById(titleId).innerText =
+      dateObj.toLocaleString("ja-JP", { year: "numeric", month: "long" });
+
+    const calendar = document.getElementById(calendarId);
+    calendar.innerHTML = "";
+
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+    dayNames.forEach(dayName => {
+      const div = document.createElement("div");
+      div.className = "day-name";
+      div.innerText = dayName;
+      calendar.appendChild(div);
+    });
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    for (let i = 0; i < firstDay; i++) {
+      const div = document.createElement("div");
+      div.className = "day empty";
+      calendar.appendChild(div);
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const todayString =
+      today.getFullYear() + "-" +
+      String(today.getMonth() + 1).padStart(2, "0") + "-" +
+      String(today.getDate()).padStart(2, "0");
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const div = document.createElement("div");
+
+      const dateString =
+        year + "-" +
+        String(month + 1).padStart(2, "0") + "-" +
+        String(day).padStart(2, "0");
+
+      const thisDay = new Date(year, month, day);
+      thisDay.setHours(0, 0, 0, 0);
+
+      div.className = "day";
+      div.innerText = day;
+      div.dataset.date = dateString;
+
+      const isSunday = thisDay.getDay() === 0;
+      const isPast = thisDay < today;
+      const status = availability[dateString];
+
+      // Sunday is always unavailable.
+      if (isSunday) {
+        div.classList.add("unavailable");
+        div.title = "Closed";
+      } else if (status === 0) {
+        div.classList.add("available");
+      } else if (status === 1) {
+        div.classList.add("limited");
+      } else if (status === 2) {
+        div.classList.add("unavailable");
+      } else {
+        div.classList.add("available");
+      }
+
+      if (dateString === todayString) {
+        div.classList.add("today");
+      }
+
+      if (isPast) {
+        div.classList.add("past");
+      }
+
+      // Clickable only if not Sunday, not past, and not full/unavailable.
+      if (!isSunday && !isPast && status !== 2) {
+        div.onclick = function () {
+          selectDate(dateString);
+        };
+      }
+
+      calendar.appendChild(div);
+    }
+  }
+
+  function selectDate(dateString) {
+    // Click Date 1 again -> deselect Date 1 only.
+    if (selectedDate1 === dateString) {
+      selectedDate1 = null;
+      afterSelectionChanged();
+      return;
+    }
+
+    // Click Date 2 again -> deselect Date 2 only.
+    if (selectedDate2 === dateString) {
+      selectedDate2 = null;
+      afterSelectionChanged();
+      return;
+    }
+
+    // If Date 1 is empty -> fill Date 1.
+    if (!selectedDate1) {
+      selectedDate1 = dateString;
+      afterSelectionChanged();
+      return;
+    }
+
+    // If Date 2 is empty -> fill Date 2.
+    if (!selectedDate2) {
+      selectedDate2 = dateString;
+      afterSelectionChanged();
+      return;
+    }
+
+    // If both are already filled, clicking a 3rd date replaces Date 2 only.
+    selectedDate2 = dateString;
+    afterSelectionChanged();
+  }
+
+  function afterSelectionChanged() {
+    refreshSelectedClasses();
+    updateSelectedLabel();
+    sendDatesToJotform();
+  }
+
+  function refreshSelectedClasses() {
+    document.querySelectorAll(".day").forEach(day => {
+      day.classList.remove("selected-date-1", "selected-date-2");
+
+      if (day.dataset.date === selectedDate1) {
+        day.classList.add("selected-date-1");
+      }
+
+      if (day.dataset.date === selectedDate2) {
+        day.classList.add("selected-date-2");
+      }
+    });
+  }
+
+  function updateSelectedLabel() {
+    document.getElementById("selectedLabel").innerText =
+      "第一希望日: " + formatDateForDisplay(selectedDate1) +
+      "　/　第二希望日: " + formatDateForDisplay(selectedDate2);
+  }
+
+  function formatDateForDisplay(dateString) {
+    if (!dateString) return "未選択";
+
+    const parts = dateString.split("-");
+    if (parts.length !== 3) return dateString;
+
+    return parts[0] + "年" + Number(parts[1]) + "月" + Number(parts[2]) + "日";
+  }
+
+  function sendDatesToJotform() {
+    window.parent.postMessage({
+      type: "calendarSelectedDates",
+      date1: selectedDate1,
+      date2: selectedDate2
+    }, "*");
+  }
+
+  function changeMonth(step) {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(newDate.getMonth() + step);
+
+    if (newDate >= minMonth && newDate <= maxMonth) {
+      currentDate = newDate;
+      renderCalendars();
+    }
+  }
+
+  function updateButtons() {
+    const prevButton = document.getElementById("prevButton");
+    const nextButton = document.getElementById("nextButton");
+
+    prevButton.disabled = currentDate <= minMonth;
+    nextButton.disabled = currentDate >= maxMonth;
+  }
+
+  window.addEventListener("resize", function () {
+    renderCalendars();
+  });
+
+  loadAvailability();
+</script>
+
+</body>
+</html>
